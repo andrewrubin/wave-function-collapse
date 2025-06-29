@@ -1,6 +1,6 @@
-# Wave function collapse algorithm
+# Wave function collapse
 
-WFC tile solver, implemented on a 2D canvas in JavaScript.
+WFC tile solver, visualized on a 2D canvas in JavaScript.
 
 ## TO-DO
 
