@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wave function collapse</title>
+
+    <style>
+      body {
+        background: linear-gradient(0deg, #ffb57d, #f8ffb7);
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: min(100%, var(--canvas-size, 600px));
+        margin: 0;
+        min-block-size: 100vh;
+        place-content: center;
+      }
+
+      canvas {
+        aspect-ratio: 1;
+        max-inline-size: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas></canvas>
+    <button>step</button>
+    <script src="./main.js" type="module"></script>
+  </body>
+</html>
