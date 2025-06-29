@@ -235,14 +235,21 @@ function waveFunctionCollapse(cell) {
   // Randomly assign a tile to the cell, and "collapse" it.
   if (!cell) return;
 
+  // Prioritize a certain tile:
+  // if (Math.random() > 0.15 && cell.options.includes("dddd")) {
+  //   cell.tileId = "dddd";
+  // } else {
+  //   cell.tileId = cell.options[Math.floor(Math.random() * cell.options.length)];
+  // }
+
   cell.tileId = cell.options[Math.floor(Math.random() * cell.options.length)];
   cell.options = [];
 
   const neighborCells = getNeighbors(cell);
   updateNeighbors(cell, neighborCells);
   drawGrid({
-    // displayGuides: true,
-    // displayEntropy: true,
+    displayGuides: true,
+    displayEntropy: true,
     neighborCells: neighborCells,
     activeCell: cell,
   });
