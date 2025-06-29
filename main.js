@@ -1,5 +1,13 @@
 import { loadImagesFromURLs } from "./lib/load-images-from-urls.js";
 
+const SOLVE_STYLES = {
+  ANIMATE: "animate",
+  INSTANT: "instant",
+  STEP: "step",
+};
+
+const solveStyle = SOLVE_STYLES.STEP;
+
 const NUM_ROWS = 15;
 const NUM_COLS = 15;
 const TILE_SIZE = 40;
@@ -223,10 +231,12 @@ function waveFunctionCollapse(cell) {
     activeCell: cell,
   });
   const lowestEntropyCell = getRandomLowestEntropyCell();
-  // solve instantly:
-  // if (lowestEntropyCell) waveFunctionCollapse(lowestEntropyCell);
 
-  // only used for stepping through the function calls:
+  if (solveStyle === SOLVE_STYLES.INSTANT && lowestEntropyCell) {
+    waveFunctionCollapse(lowestEntropyCell);
+  }
+
+  // only used for "step" solve style:
   return lowestEntropyCell;
 }
 
@@ -250,16 +260,21 @@ async function init() {
   const startingCell = grid[startingIndex];
   let nextCell = waveFunctionCollapse(startingCell);
 
-  function play() {
-    nextCell = waveFunctionCollapse(nextCell);
-    requestAnimationFrame(play);
+  if (solveStyle === SOLVE_STYLES.ANIMATE) {
+    function play() {
+      nextCell = waveFunctionCollapse(nextCell);
+      requestAnimationFrame(play);
+    }
+
+    play();
+  } else if (solveStyle === SOLVE_STYLES.STEP) {
+    const stepButton = document.createElement("button");
+    stepButton.textContent = "step";
+    stepButton.addEventListener("click", () => {
+      nextCell = waveFunctionCollapse(nextCell);
+    });
+    CANVAS.insertAdjacentElement("afterend", stepButton);
   }
-
-  // play();
-
-  document.querySelector("button").addEventListener("click", () => {
-    nextCell = waveFunctionCollapse(nextCell);
-  });
 }
 
 init();
