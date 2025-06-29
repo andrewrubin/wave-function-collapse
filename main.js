@@ -6,74 +6,53 @@ const SOLVE_STYLES = {
   STEP: "step",
 };
 
-const solveStyle = SOLVE_STYLES.STEP;
+const solveStyle = SOLVE_STYLES.INSTANT;
 
-const NUM_ROWS = 15;
-const NUM_COLS = 15;
+let tileImages;
+
 const TILE_SIZE = 40;
+const NUM_ROWS = Math.min(
+  Math.floor(window.innerHeight / TILE_SIZE) - 2,
+  Math.floor(window.innerWidth / TILE_SIZE) - 2
+);
+const NUM_COLS = NUM_ROWS;
 const CANVAS = document.querySelector("canvas");
 const CTX = CANVAS.getContext("2d");
 const DPR = Math.min(devicePixelRatio, 2);
 
-// Connector keys per side (N,S,E,W)
-const TILE_DATA = [
-  //0:
-  [
-    [0, 2, 4, 5],
-    [0, 2, 3, 6],
-    [0, 1, 3, 5],
-    [0, 1, 4, 6],
-  ],
-  //1:
-  [
-    [1, 3, 6],
-    [1, 4, 5],
-    [0, 3, 5],
-    [0, 4, 6],
-  ],
-  //2:
-  [
-    [0, 2, 4, 5],
-    [0, 2, 3, 6],
-    [2, 4, 6],
-    [2, 3, 5],
-  ],
-  //3:
-  [
-    [0, 2, 4, 5],
-    [1, 4, 5],
-    [2, 4, 6],
-    [0, 1, 4, 6],
-  ],
-  //4:
-  [
-    [1, 3, 6],
-    [0, 2, 3, 6],
-    [0, 1, 3, 5],
-    [2, 3, 5],
-  ],
-  //5:
-  [
-    [1, 3, 6],
-    [0, 2, 3, 6],
-    [2, 4, 6],
-    [0, 1, 4, 6],
-  ],
-  //6:
-  [
-    [0, 2, 4, 5],
-    [1, 4, 5],
-    [0, 1, 3, 5],
-    [2, 3, 5],
-  ],
+const TILE_IDS = [
+  "blank",
+  "dddd",
+  "dddg",
+  "ddgd",
+  "ddgg",
+  "dgdd",
+  "dgdg",
+  "dggg",
+  "gddd",
+  "gdgd",
+  "gdgg",
+  "ggdd",
+  "ggdg",
+  "gggd",
+  "gggg",
 ];
 
-let tileImages;
+const TILE_IMAGE_URLS = TILE_IDS.map((id) => `./tiles/tile-${id}.png`);
 
-// Initialize the grid so all tiles are blank (0), and have all possible connector options
-let grid = Array.from({ length: NUM_COLS * NUM_ROWS }, () => ({
-  tileId: 0,
-  options: Array.from({ length: TILE_DATA.length }, (_, i) => i),
+// Connector keys per side (N,S,E,W)
+const TILE_DATA = TILE_IDS.map((id) => {
+  return {
+    id,
+    connections: getTileConnections(id),
+  };
+});
+
+// Initialize the grid so all tiles are blank, and have all possible connector options
+const allTileIds = TILE_DATA.map(({ id }) => id);
+const grid = Array.from({ length: NUM_COLS * NUM_ROWS }, () => ({
+  tileId: "blank",
+  options: allTileIds,
 }));
 
 function setCanvasSize() {
@@ -81,6 +60,37 @@ function setCanvasSize() {
   CANVAS.height = NUM_ROWS * TILE_SIZE * DPR;
   CTX.font = `${TILE_SIZE * 0.5 * DPR}px sans-serif`;
   document.body.style.setProperty("--canvas-size", NUM_COLS * TILE_SIZE + "px");
+}
+
+function getTileConnections(tileId) {
+  // returns an array of directions [N,S,E,W]
+  // where each direction is an array of possible tile connection IDs
+
+  if (tileId === "blank") {
+    return [TILE_IDS, TILE_IDS, TILE_IDS, TILE_IDS];
+  }
+
+  // extract each quadrant id from the tile id
+  const [q1, q2, q3, q4] = tileId.split("");
+
+  return TILE_IDS.reduce(
+    (acc, cur) => {
+      // North can match where neighbor q3 & q4 (south) are equal to current q1 & q2
+      if (cur.substring(2, 3) === q1 && cur.substring(3, 4) === q2)
+        acc[0].push(cur);
+      // South can match where neighbor q1 & q2 (north) are equal to current q3 & q4
+      if (cur.substring(0, 1) === q3 && cur.substring(1, 2) === q4)
+        acc[1].push(cur);
+      // East can match where neighbor q1 & q3 (west) are equal to current q2 & q4
+      if (cur.substring(0, 1) === q2 && cur.substring(2, 3) === q4)
+        acc[2].push(cur);
+      // West can match where neighbor q2 & q4 (west) are equal to current q1 & q3
+      if (cur.substring(1, 2) === q1 && cur.substring(3, 4) === q3)
+        acc[3].push(cur);
+      return acc;
+    },
+    [[], [], [], []]
+  );
 }
 
 function getCellPosition(cell) {
@@ -93,9 +103,10 @@ function getCellPosition(cell) {
 function drawTile(x, y, displayEntropy) {
   const cell = grid[x + y * NUM_COLS];
   const { tileId, options } = cell;
+  const i = TILE_IDS.findIndex((id) => id === tileId);
 
   CTX.drawImage(
-    tileImages[tileId],
+    tileImages[i],
     x * TILE_SIZE * DPR,
     y * TILE_SIZE * DPR,
     TILE_SIZE * DPR,
@@ -197,8 +208,11 @@ function updateNeighbors(cell, neighborCells) {
   for (let i = 0; i < neighborCells.length; i++) {
     const neighbor = neighborCells[i];
     if (!neighbor) continue;
+    const cellConnections = TILE_DATA.find(
+      ({ id }) => id === cell.tileId
+    ).connections;
     neighbor.options = neighbor.options.filter((x) =>
-      TILE_DATA[cell.tileId][i].includes(x)
+      cellConnections[i].includes(x)
     );
   }
 }
@@ -219,14 +233,16 @@ function getRandomLowestEntropyCell() {
 
 function waveFunctionCollapse(cell) {
   // Randomly assign a tile to the cell, and "collapse" it.
+  if (!cell) return;
+
   cell.tileId = cell.options[Math.floor(Math.random() * cell.options.length)];
   cell.options = [];
 
   const neighborCells = getNeighbors(cell);
   updateNeighbors(cell, neighborCells);
   drawGrid({
-    displayGuides: true,
-    displayEntropy: true,
+    // displayGuides: true,
+    // displayEntropy: true,
     neighborCells: neighborCells,
     activeCell: cell,
   });
@@ -241,15 +257,7 @@ function waveFunctionCollapse(cell) {
 }
 
 async function init() {
-  tileImages = await loadImagesFromURLs([
-    "./tiles/tile-00.png",
-    "./tiles/tile-01.png",
-    "./tiles/tile-02.png",
-    "./tiles/tile-03.png",
-    "./tiles/tile-04.png",
-    "./tiles/tile-05.png",
-    "./tiles/tile-06.png",
-  ]);
+  tileImages = await loadImagesFromURLs(TILE_IMAGE_URLS);
 
   setCanvasSize();
 
